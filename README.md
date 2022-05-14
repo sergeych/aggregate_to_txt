@@ -9,3 +9,7 @@ classic human-readable dump (by default) or as a more space-savvy base64 encodin
 Kotlin native allows it to be redistributed as a binary CLI tool.
 
 For help, start it with `--help` key as usual.
+
+## Prebuilt binaries
+
+I will put some by occasion to the [project wiki](https://github.com/sergeych/aggregate_to_txt/wiki). Feel free to suggest more ;)
