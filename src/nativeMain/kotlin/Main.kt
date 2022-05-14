@@ -55,6 +55,8 @@ object RuStrings: Strings {
 
 class DirAggregator : CliktCommand(
     help = """
+        | aggregate_to_text v${version}
+        | 
         | Create a text file containing all files from the root directory providing their names, dates
         | amd hashes. Text files are included as is, binary as base64 or dump. Thr resulting text files
         | is both human-readable (especially without base64) and allow to resotre source files tree from
@@ -63,7 +65,8 @@ class DirAggregator : CliktCommand(
         | Resulting file is copied to stdout to comply with best unix practices.
         | 
         | For issues/ideas visit project's github: https://github.com/sergeych/aggregate_to_txt
-    """.trimMargin()
+    """.trimMargin(),
+    printHelpOnEmptyArgs = true,
 ) {
     val dry by option(help = "dry run")
         .flag(default = false)
@@ -84,6 +87,9 @@ class DirAggregator : CliktCommand(
             object : Strings {}
     }
 
+    val version by lazy {
+        "1.0"
+    }
 
     fun isBinary(x: Path): Boolean {
         val name = x.name

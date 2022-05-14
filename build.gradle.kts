@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.tasks.KotlinNativeCompile
+
 plugins {
     kotlin("multiplatform") version "1.6.20"
 }
@@ -37,5 +40,14 @@ kotlin {
             }
         }
         val nativeTest by getting
+    }
+}
+
+tasks.withType<KotlinNativeCompile>() {
+    doFirst {
+        val versionFile = file("src/nativeMain/kotlin/version.kt")
+        versionFile.writeText(
+            "val version = \"${rootProject.version}\""
+        )
     }
 }
