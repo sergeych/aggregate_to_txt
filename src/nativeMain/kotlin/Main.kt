@@ -2,6 +2,7 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
+import kotlinx.cinterop.refTo
 import kotlinx.datetime.Instant
 import net.sergeych.mptools.toDumpLines
 import net.sergeych.sprintf.sprintf
@@ -10,6 +11,9 @@ import okio.FileNotFoundException
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
+import platform.posix.fclose
+import platform.posix.fopen
+import platform.posix.fread
 
 val textExtensions = setOf(
     "c", "cc", "c++", "cpp", "cxx", "h", "hpp", "h++", "hxx",
@@ -42,7 +46,7 @@ interface Strings {
     val endFile: String get() = "end of file"
 }
 
-object RuStrings: Strings {
+object RuStrings : Strings {
     override val textFile = "Текстовый файл"
     override val binaryFile = "Двоичный файл"
     override val fileTime = "Время модификации"
@@ -66,6 +70,7 @@ class DirAggregator : CliktCommand(
         | 
         | For issues/ideas visit project's github: https://github.com/sergeych/aggregate_to_txt
     """.trimMargin(),
+    name = "aggregate_to_txt",
     printHelpOnEmptyArgs = true,
 ) {
     val dry by option(help = "dry run")
@@ -78,17 +83,13 @@ class DirAggregator : CliktCommand(
 
     val binaryExtsFound = mutableSetOf<String>()
 
-    val ru by option(help = "use Russian locale").flag(default=false)
+    val ru by option(help = "use Russian locale").flag(default = false)
 
     val strings: Strings by lazy {
-        if( ru )
+        if (ru)
             RuStrings
         else
             object : Strings {}
-    }
-
-    val version by lazy {
-        "1.0"
     }
 
     fun isBinary(x: Path): Boolean {
@@ -96,7 +97,22 @@ class DirAggregator : CliktCommand(
         if (name in textNames) return false
         val parts = name.split('.')
         if (parts.size == 1) {
-            // TODO: check files without extensions more thoroughly
+            // We suppose that only such files also starting with shebang are text
+            val f = fopen(x.toString(), "rb")
+            try {
+                val buffer = ByteArray(8) // well I'm a rpogrammer mean dont' beleive in non-words ;)
+                val cnt = fread(buffer.refTo(0), 4, 1, f)
+                if (cnt == 1UL) {
+                    if (buffer[0].toInt() == '#'.code &&
+                        buffer[1].toInt() == '!'.code
+                    ) {
+                        return false
+                    }
+                    return true
+                }
+            } finally {
+                fclose(f)
+            }
             return false
         }
         if (parts.size > 1) {
@@ -117,7 +133,7 @@ class DirAggregator : CliktCommand(
                     println("Following unknown extensions are treated as binary:\n" +
                             binaryExtsFound.joinToString(", ") { ".$it" })
                 else
-                    println("Np binary files found")
+                    println("No unknown/binary files found")
             }
         } catch (x: FileNotFoundException) {
             println("Error: (root?) file not found")
@@ -128,16 +144,17 @@ class DirAggregator : CliktCommand(
 
     fun scan(root: String) {
         for (x: Path in FileSystem.SYSTEM.listRecursively(root.toPath(), false)) {
+            val binary = isBinary(x)
             if (FileSystem.SYSTEM.metadata(x).isDirectory) {
                 if (dry) {
                     println("Dir    $x")
                 }
             } else {
                 if (dry) {
-                    val b = if (isBinary(x)) "B" else "T"
+                    val b = if (binary) "B" else "T"
                     println("File $b $x")
                 } else {
-                    if (isBinary(x))
+                    if (binary)
                         processBinary(x)
                     else {
                         try {
@@ -185,8 +202,6 @@ class DirAggregator : CliktCommand(
         }
         println("--- $intro ${dump.size} ---\n${dump.joinToString("\n")}\n--- ${strings.endFile} ---\n")
     }
-
-
 }
 
 fun main(args: Array<String>) = DirAggregator().main(args)

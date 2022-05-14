@@ -1,8 +1,8 @@
 #!/bin/bash
 
 ./gradlew linkReleaseExecutableNative
-cp build/bin/native/releaseExecutable/aggregate_to_txt.kexe build/tmp/aggregate_to_txt
-upx build/tmp/aggregate_to_txt
-cp build/tmp/aggregate_to_txt ~/bin
-zip aggregate_to_txt.zip build/tmp/aggregate_to_txt
+cp build/bin/native/releaseExecutable/aggregate_to_txt.kexe build/aggregate_to_txt
+upx build/aggregate_to_txt
+cp build/aggregate_to_txt ~/bin
+zip aggregate_to_txt.zip build/aggregate_to_txt
 
