@@ -41,6 +41,8 @@ class DirAggregator : CliktCommand(
         | it.
         | 
         | Resulting file is copied to stdout to comply with best unix practices.
+        | 
+        | For issues/ideas visit project's github: https://github.com/sergeych/aggregate_to_txt
     """.trimMargin()
 ) {
     val dry by option(help = "dry run")

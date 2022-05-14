@@ -7,3 +7,7 @@ Binary (and all unknown files are treated as binary) are represented either as
 classic human-readable dump (by default) or as a more space-savvy base64 encoding.
 
 Kotlin native allows it to be redistributed as a binary CLI tool.
+
+## Known issues
+
+- Current version uses russian language in aggregation, will add English default locale soon

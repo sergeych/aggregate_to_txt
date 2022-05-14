@@ -2,3 +2,10 @@
 /.gradle/
 /build/
 /build/classes/kotlin/native/main/klib/
+/aggregate_to_text
+/.idea/compiler.xml
+/.idea/gradle.xml
+/.idea/jarRepositories.xml
+/.idea/misc.xml
+/.idea/vcs.xml
+/.idea/workspace.xml
