@@ -32,6 +32,26 @@ val textNames = setOf(
     "Makefile"
 )
 
+interface Strings {
+    val textFile: String get() = "Text file"
+    val binaryFile: String get() = "Binary file"
+    val fileTime: String get() = "Last modified"
+    val textFileStarts: String get() = "file contents, total lines:"
+    val dumpStarts: String get() = "binary file dump, total lines:"
+    val base64Starts: String get() = "base64 encoded contents, total lines:"
+    val endFile: String get() = "end of file"
+}
+
+object RuStrings: Strings {
+    override val textFile = "Текстовый файл"
+    override val binaryFile = "Двоичный файл"
+    override val fileTime = "Время модификации"
+    override val textFileStarts = "начало файла, всего строк:"
+    override val dumpStarts = "Начало файла, всего строк:"
+    override val base64Starts = "Начало base64-кодированного файла, всего строк:"
+    override val endFile = "конец файла"
+}
+
 
 class DirAggregator : CliktCommand(
     help = """
@@ -54,6 +74,16 @@ class DirAggregator : CliktCommand(
     val root by argument()
 
     val binaryExtsFound = mutableSetOf<String>()
+
+    val ru by option(help = "use Russian locale").flag(default=false)
+
+    val strings: Strings by lazy {
+        if( ru )
+            RuStrings
+        else
+            object : Strings {}
+    }
+
 
     fun isBinary(x: Path): Boolean {
         val name = x.name
@@ -119,11 +149,11 @@ class DirAggregator : CliktCommand(
 
     private fun printHeder(path: Path, isBinary: Boolean, data: ByteString) {
         if (isBinary)
-            println("--- Двоичный файл: $path")
+            println("--- ${strings.binaryFile}: $path")
         else
-            println("--- Текстовый файл: $path")
+            println("--- ${strings.textFile}: $path")
         FileSystem.SYSTEM.metadata(path).lastAccessedAtMillis?.let { t ->
-            println("--- Дата модификации: %tO".sprintf(Instant.fromEpochMilliseconds(t)))
+            println("--- ${strings.fileTime}: %tO".sprintf(Instant.fromEpochMilliseconds(t)))
         }
         println("--- SHA256: ${data.sha256().hex()}")
     }
@@ -132,22 +162,22 @@ class DirAggregator : CliktCommand(
         val data = FileSystem.SYSTEM.read(x) { readByteString() }
         val str = data.utf8()
         printHeder(x, false, data)
-        println("--- начало файла, всего строк ${str.lines().size} ---\n$str\n--- конец файла ---\n ")
+        println("--- ${strings.textFileStarts} ${str.lines().size} ---\n$str\n--- ${strings.endFile} ---\n ")
     }
 
     private fun processBinary(x: Path) {
         val data: ByteString = FileSystem.SYSTEM.read(x) { readByteString() }
         printHeder(x, true, data)
         val dump: List<String>
-        val name: String
+        val intro: String
         if (base64) {
             dump = data.base64().chunked(80)
-            name = "base64 закодированного base64 файла"
+            intro = strings.base64Starts
         } else {
             dump = data.toByteArray().toDumpLines()
-            name = "начало дампа"
+            intro = strings.dumpStarts
         }
-        println("--- $name, всего строк ${dump.size} ---\n${dump.joinToString("\n")}\n--- конец дампа ---\n")
+        println("--- $intro ${dump.size} ---\n${dump.joinToString("\n")}\n--- ${strings.endFile} ---\n")
     }
 
 

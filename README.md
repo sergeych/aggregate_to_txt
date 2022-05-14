@@ -8,6 +8,4 @@ classic human-readable dump (by default) or as a more space-savvy base64 encodin
 
 Kotlin native allows it to be redistributed as a binary CLI tool.
 
-## Known issues
-
-- Current version uses russian language in aggregation, will add English default locale soon
+For help, start it with `--help` key as usual.
