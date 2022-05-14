@@ -2,10 +2,8 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
-import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.refTo
 import kotlinx.datetime.Instant
-import net.sergeych.mptools.toDump
 import net.sergeych.mptools.toDumpLines
 import net.sergeych.sprintf.sprintf
 import okio.ByteString
@@ -98,54 +96,53 @@ class DirAggregator : CliktCommand(
         val parts = name.split('.')
         if (parts.size == 1) {
             // We suppose that only such files also starting with shebang are text
-            fopen(x.toString(), "rb")?.let { f ->
-                try {
-                    val buffer = ByteArray(2) // well I'm a rpogrammer mean dont' beleive in non-words ;)
-                    val cnt = fread(buffer.refTo(0), 1, 2, f)
-                    if (cnt == 2UL) {
-                        if (buffer[0].toInt() == '#'.code &&
-                            buffer[1].toInt() == '!'.code
-                        ) {
-                            return false
-                        }
-                        rewind(f)
-                        return checkNonAscii(f)
-                    }
-                } finally {
-                    fclose(f)
-                }
-            }
-            return false
+            return checkNonAscii(x)
         }
-        if (parts.size > 1) {
-            val ext = parts.last()
-            if (ext in textExtensions)
-                return false
+        val ext = parts.last()
+        if( ext in textExtensions ) return false
+        if( checkNonAscii(x) ) {
             binaryExtsFound.add(ext)
+            return true
         }
-        return true
+        return false
     }
 
-    private fun checkNonAscii(f: CPointer<FILE>?): Boolean {
-        val buffer = ByteArray(0x8000)
-        val chunk = buffer.size
-        var pos = 0
-        while( feof(f) != EOF ) {
-            val count = fread(buffer.refTo(0), 1, chunk.toULong(), f)
-            if( count == 0UL ) break
-            for( i in 0 until count.toInt()) {
-                val code = buffer[i].toUInt()
-                pos++
-                when(code) {
-                    9U, 10U, 13U, 32U -> {}// ok
-                    else -> {
-                        if( code < 32U ) {
-                            if( dry )
-                                println("Non-ascii character found @$pos: $code, considering file is binary")
-                            return true
+    private fun checkNonAscii(fileName: Path): Boolean {
+        fopen(fileName.toString(), "rb")?.let { f ->
+            try {
+                val buffer = ByteArray(2) // well I'm a rpogrammer mean dont' beleive in non-words ;)
+                val cnt = fread(buffer.refTo(0), 1, 2, f)
+                if (cnt == 2UL) {
+                    if (buffer[0].toInt() == '#'.code &&
+                        buffer[1].toInt() == '!'.code
+                    ) {
+                        return false
+                    }
+                    rewind(f)
+                    val buffer = ByteArray(0x8000)
+                    val chunk = buffer.size
+                    var pos = 0
+                    while( feof(f) != EOF ) {
+                        val count = fread(buffer.refTo(0), 1, chunk.toULong(), f)
+                        if( count == 0UL ) break
+                        for( i in 0 until count.toInt()) {
+                            val code = buffer[i].toUInt()
+                            pos++
+                            when(code) {
+                                9U, 10U, 13U, 32U -> {}// ok
+                                else -> {
+                                    if( code < 32U ) {
+                                        if( dry )
+                                            println("Non-ascii character found @$pos: $code, considering file is binary")
+                                        return true
+                                    }
+                                }
+                            }
                         }
                     }
                 }
+            } finally {
+                fclose(f)
             }
         }
         return false
